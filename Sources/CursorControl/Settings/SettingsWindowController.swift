@@ -1015,7 +1015,7 @@ final class SettingsWindowController: NSWindowController {
         recordingEventMonitor = NSEvent.addLocalMonitorForEvents(matching: [
             .keyDown, .keyUp, .flagsChanged,
             .leftMouseDown, .rightMouseDown, .otherMouseDown,
-            .leftMouseUp, .rightMouseUp, .otherMouseUp
+            .leftMouseUp, .rightMouseUp, .otherMouseUp, .scrollWheel
         ]) {
             [weak button] event in
             guard let button, button.isRecordingShortcut else {

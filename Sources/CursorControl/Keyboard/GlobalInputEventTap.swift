@@ -68,6 +68,7 @@ final class GlobalInputEventTap {
             | (1 << CGEventType.leftMouseUp.rawValue)
             | (1 << CGEventType.rightMouseUp.rawValue)
             | (1 << CGEventType.otherMouseUp.rawValue)
+            | (1 << CGEventType.scrollWheel.rawValue)
         let context = Unmanaged.passUnretained(self).toOpaque()
         guard let eventTap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,

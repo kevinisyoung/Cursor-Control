@@ -25,7 +25,7 @@ struct OptionTapTrackerTests {
     }
 
     @Test func chordsAndClicksCancelTap() {
-        for eventType in [CGEventType.keyDown, .keyUp, .leftMouseDown, .rightMouseDown, .otherMouseDown] {
+        for eventType in [CGEventType.keyDown, .keyUp, .leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel] {
             var tracker = OptionTapTracker()
             _ = tracker.handle(type: .flagsChanged, keyCode: 61, flags: rightDown, timestamp: 1)
             _ = tracker.handle(type: eventType, keyCode: 0, flags: rightDown, timestamp: 1.05)
