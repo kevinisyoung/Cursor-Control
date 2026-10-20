@@ -235,6 +235,10 @@ private final class SpyMouseClickService: MouseClicking {
         return shouldSucceed
     }
 
+    func fastLeftClick(at point: CGPoint) -> Bool {
+        click(.left, at: point)
+    }
+
     func beginLeftDrag(at point: CGPoint) -> Bool {
         dragEvents.append(.beganDrag(point))
         return shouldSucceed
