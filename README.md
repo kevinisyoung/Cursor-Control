@@ -100,7 +100,14 @@ The menu bar menu contains:
 
 ### Cursor Control Mode
 
-Press **Option-W** by default to enter or exit cursor mode. While it is active:
+Press **Option-W** by default to enter or exit cursor mode. To use a modifier-only
+shortcut, open Settings → Shortcuts, record Cursor control mode, and quickly tap
+and release Left Option or Right Option. The sides are distinct. A tap must finish
+within 250 ms; holding Option or combining it with another key or mouse click does
+not toggle the mode. This requires Accessibility access. Existing shortcuts and the
+Option-W default are unchanged.
+
+While cursor mode is active:
 
 - **H/J/K/L** move the real cursor left, down, up, and right
 - Holding movement keys accelerates smoothly

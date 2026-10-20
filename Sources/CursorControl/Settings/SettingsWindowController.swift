@@ -397,7 +397,7 @@ final class SettingsWindowController: NSWindowController {
     private func makeShortcutsSection() -> NSView {
         let sectionLabel = sectionDescription(
             title: "Shortcuts",
-            body: "Record global shortcuts here. Cursor movement keys are configured separately in Cursor Control."
+            body: "Record global shortcuts here. For cursor control mode, you can also tap Left or Right Option alone. Cursor movement keys are configured separately in Cursor Control."
         )
 
         let shortcutStack = NSStackView()
@@ -1012,27 +1012,23 @@ final class SettingsWindowController: NSWindowController {
 
     private func startRecordingEventMonitor(for button: ShortcutRecorderButton) {
         stopRecordingEventMonitor()
-        recordingEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) {
-            [weak self, weak button] event in
-            guard let self, let button, button.isRecordingShortcut else {
+        recordingEventMonitor = NSEvent.addLocalMonitorForEvents(matching: [
+            .keyDown, .keyUp, .flagsChanged,
+            .leftMouseDown, .rightMouseDown, .otherMouseDown,
+            .leftMouseUp, .rightMouseUp, .otherMouseUp
+        ]) {
+            [weak button] event in
+            guard let button, button.isRecordingShortcut else {
                 return event
             }
 
-            if event.keyCode == KeyboardShortcuts.escapeKeyCode {
-                button.cancelRecording()
+            button.capture(event)
+            switch event.type {
+            case .keyDown, .keyUp, .flagsChanged:
                 return nil
+            default:
+                return event
             }
-
-            guard let shortcut = KeyboardShortcut(
-                event: event,
-                requiresPrimaryModifier: button.recorderTarget.requiresPrimaryModifier
-            ) else {
-                NSSound.beep()
-                return nil
-            }
-
-            self.finishShortcutRecording(button, shortcut: shortcut)
-            return nil
         }
     }
 

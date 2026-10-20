@@ -105,7 +105,8 @@ final class ShortcutStore {
         for identifier: ShortcutIdentifier,
         in assignments: ShortcutAssignments? = nil
     ) -> Result<Void, ShortcutValidationError> {
-        guard !shortcut.modifiers.intersection([.command, .control, .option]).isEmpty else {
+        guard (identifier == .activateCursorMode && shortcut.isOptionTap)
+            || !shortcut.modifiers.intersection([.command, .control, .option]).isEmpty else {
             return .failure(.missingPrimaryModifier)
         }
 

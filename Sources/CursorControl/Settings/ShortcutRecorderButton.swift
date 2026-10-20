@@ -30,6 +30,7 @@ final class ShortcutRecorderButton: NSButton {
     var onCancelledRecording: (() -> Void)?
 
     private var titleBeforeRecording = ""
+    private var optionTapTracker = OptionTapTracker()
     private(set) var isRecordingShortcut = false
 
     init(shortcutIdentifier: ShortcutIdentifier) {
@@ -60,6 +61,7 @@ final class ShortcutRecorderButton: NSButton {
     }
 
     func beginRecording() {
+        optionTapTracker.reset()
         titleBeforeRecording = title
         isRecordingShortcut = true
         title = "Type shortcut…"
@@ -68,6 +70,7 @@ final class ShortcutRecorderButton: NSButton {
     }
 
     func finishRecording(displayTitle: String) {
+        optionTapTracker.reset()
         isRecordingShortcut = false
         title = displayTitle
         window?.makeFirstResponder(nil)
@@ -75,6 +78,7 @@ final class ShortcutRecorderButton: NSButton {
     }
 
     func cancelRecording() {
+        optionTapTracker.reset()
         isRecordingShortcut = false
         title = titleBeforeRecording
         window?.makeFirstResponder(nil)
@@ -87,12 +91,35 @@ final class ShortcutRecorderButton: NSButton {
             super.keyDown(with: event)
             return
         }
+        capture(event)
+    }
 
+    override func flagsChanged(with event: NSEvent) {
+        guard isRecordingShortcut else {
+            super.flagsChanged(with: event)
+            return
+        }
+        capture(event)
+    }
+
+    func capture(_ event: NSEvent) {
+        guard isRecordingShortcut else { return }
+        if recorderTarget == .globalShortcut(.activateCursorMode),
+           let cgEvent = event.cgEvent,
+           let tap = optionTapTracker.handle(
+               type: cgEvent.type,
+               keyCode: UInt32(cgEvent.getIntegerValueField(.keyboardEventKeycode)),
+               flags: cgEvent.flags,
+               timestamp: event.timestamp
+           ) {
+            onCapturedShortcut?(tap)
+            return
+        }
+        guard event.type == .keyDown else { return }
         if event.keyCode == KeyboardShortcuts.escapeKeyCode {
             cancelRecording()
             return
         }
-
         guard let shortcut = KeyboardShortcut(
             event: event,
             requiresPrimaryModifier: recorderTarget.requiresPrimaryModifier
@@ -100,7 +127,6 @@ final class ShortcutRecorderButton: NSButton {
             NSSound.beep()
             return
         }
-
         onCapturedShortcut?(shortcut)
     }
 }

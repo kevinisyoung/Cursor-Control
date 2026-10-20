@@ -97,7 +97,7 @@ final class GlobalShortcutService {
         }
 
         for identifier in ShortcutIdentifier.carbonHandledCases {
-            guard let shortcut = shortcuts[identifier] else {
+            guard let shortcut = shortcuts[identifier], !shortcut.isOptionTap else {
                 continue
             }
 

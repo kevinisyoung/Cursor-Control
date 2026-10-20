@@ -108,6 +108,27 @@ struct ShortcutStoreTests {
         #expect(store.shortcut(for: .scrollDown).displayName == "Control-J")
     }
 
+    @Test func optionTapPersistsOnlyForCursorMode() throws {
+        let store = makeStore()
+        for keyCode: UInt32 in [58, 61] {
+            let tap = try #require(KeyboardShortcut.optionTap(keyCode: keyCode))
+            guard case .success = store.update(.activateCursorMode, to: tap) else {
+                Issue.record("Expected Option tap to be accepted")
+                return
+            }
+            #expect(store.shortcut(for: .activateCursorMode) == tap)
+            if case .failure(let error) = store.validate(tap, for: .scrollLeft) {
+                #expect(error == .missingPrimaryModifier)
+            } else {
+                Issue.record("Option taps must be limited to cursor mode")
+            }
+            let roundTrip = try JSONDecoder().decode(KeyboardShortcut.self, from: JSONEncoder().encode(tap))
+            #expect(roundTrip == tap)
+            #expect(roundTrip.isOptionTap)
+        }
+        #expect(store.shortcut(for: .activateCursorMode).displayName == "Right Option tap")
+    }
+
     private func makeStore() -> ShortcutStore {
         let suiteName = "CursorControlTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!

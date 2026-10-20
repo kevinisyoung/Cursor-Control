@@ -37,6 +37,7 @@ final class GlobalInputEventTap {
     private var cursorCaptureMode: CursorControlCaptureMode = .movement
     private var repeatingShortcutIdentifier: ShortcutIdentifier?
     private var shortcutRepeatCount = 0
+    private var optionTapTracker = OptionTapTracker()
     private let logger = Logger(
         subsystem: AppConstants.bundleIdentifier,
         category: "GlobalInputEventTap"
@@ -61,6 +62,12 @@ final class GlobalInputEventTap {
             (1 << CGEventType.keyDown.rawValue)
             | (1 << CGEventType.keyUp.rawValue)
             | (1 << CGEventType.flagsChanged.rawValue)
+            | (1 << CGEventType.leftMouseDown.rawValue)
+            | (1 << CGEventType.rightMouseDown.rawValue)
+            | (1 << CGEventType.otherMouseDown.rawValue)
+            | (1 << CGEventType.leftMouseUp.rawValue)
+            | (1 << CGEventType.rightMouseUp.rawValue)
+            | (1 << CGEventType.otherMouseUp.rawValue)
         let context = Unmanaged.passUnretained(self).toOpaque()
         guard let eventTap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
@@ -108,6 +115,7 @@ final class GlobalInputEventTap {
         cursorCaptureMode = .movement
         repeatingShortcutIdentifier = nil
         shortcutRepeatCount = 0
+        optionTapTracker.reset()
     }
 
     func setCursorModeActive(
@@ -134,6 +142,7 @@ final class GlobalInputEventTap {
         event: CGEvent
     ) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            optionTapTracker.reset()
             onTapDisabled?()
             if let eventTap {
                 CGEvent.tapEnable(tap: eventTap, enable: true)
@@ -143,6 +152,15 @@ final class GlobalInputEventTap {
 
         let keyCode = UInt32(event.getIntegerValueField(.keyboardEventKeycode))
         let modifiers = ShortcutModifiers(cgEventFlags: event.flags)
+
+        if let tap = optionTapTracker.handle(
+            type: type,
+            keyCode: keyCode,
+            flags: event.flags,
+            timestamp: Double(event.timestamp) / 1_000_000_000
+        ), shortcuts[.activateCursorMode] == tap {
+            onShortcut?(.activateCursorMode, .keyDown, 0)
+        }
 
         // 1. Check if the currently held shortcut is released
         if let activeId = repeatingShortcutIdentifier, let activeShortcut = shortcuts[activeId] {
