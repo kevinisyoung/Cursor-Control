@@ -208,7 +208,8 @@ final class GlobalInputEventTap {
         guard let identifier = Self.shortcutIdentifier(
             for: keyCode,
             modifiers: modifiers,
-            shortcuts: shortcuts
+            shortcuts: shortcuts,
+            isCursorModeActive: isCursorModeActive
         ) else {
             return Unmanaged.passUnretained(event)
         }
@@ -296,10 +297,12 @@ final class GlobalInputEventTap {
     static func shortcutIdentifier(
         for keyCode: UInt32,
         modifiers: ShortcutModifiers,
-        shortcuts: [ShortcutIdentifier: KeyboardShortcut]
+        shortcuts: [ShortcutIdentifier: KeyboardShortcut],
+        isCursorModeActive: Bool = false
     ) -> ShortcutIdentifier? {
         for identifier in ShortcutIdentifier.eventTapHandledCases {
             guard let shortcut = shortcuts[identifier],
+                  !identifier.requiresCursorMode(for: shortcut) || isCursorModeActive,
                   shortcut.keyCode == keyCode,
                   shortcut.modifiers == modifiers else {
                 continue

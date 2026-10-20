@@ -50,13 +50,15 @@ final class ShortcutCoordinator {
         store.shortcut(for: identifier)
     }
 
+    var currentShortcuts: [ShortcutIdentifier: KeyboardShortcut] { store.load().all }
+
     func updateShortcut(
         _ identifier: ShortcutIdentifier,
         to shortcut: KeyboardShortcut
     ) -> ShortcutUpdateResult {
         let previousAssignments = store.load()
 
-        switch store.update(identifier, to: shortcut) {
+        switch store.update(identifier, to: shortcut, movementBindings: cursorMovementBindings) {
         case .success:
             let result = applyCurrentAssignments()
             if case .success = result {

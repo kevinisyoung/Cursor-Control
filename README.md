@@ -123,6 +123,12 @@ typing, then toggle it back on when you want keyboard mouse control again.
 
 ### Scrolling
 
+Scroll shortcuts can also be plain keys (for example, arrow keys or `/`). Set them
+in Settings → Shortcuts. Bindings without Command, Control, or Option scroll only
+while cursor mode is active, and type normally otherwise. Modified scroll
+shortcuts keep their global behavior. Return, Escape, and movement keys cannot be
+assigned to mode-only scrolling.
+
 Scrolling works globally without opening another window. Press
 **Control-H/J/K/L** to scroll left, down, up, and right in the frontmost app.
 

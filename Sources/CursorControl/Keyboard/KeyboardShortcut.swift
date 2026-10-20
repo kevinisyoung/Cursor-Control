@@ -87,6 +87,10 @@ struct KeyboardShortcut: Codable, Equatable, Hashable {
 
     private static func displayKey(keyCode: UInt16, keyEquivalent: String) -> String {
         switch keyCode {
+        case 123: return "Left Arrow"
+        case 124: return "Right Arrow"
+        case 125: return "Down Arrow"
+        case 126: return "Up Arrow"
         case 49:
             return "Space"
         case KeyboardShortcuts.escapeKeyCode:

@@ -15,8 +15,8 @@ enum ShortcutRecorderTarget: Equatable, Hashable {
 
     var requiresPrimaryModifier: Bool {
         switch self {
-        case .globalShortcut:
-            return true
+        case .globalShortcut(let identifier):
+            return !identifier.supportsPlainKey
         case .cursorMovement:
             return false
         }

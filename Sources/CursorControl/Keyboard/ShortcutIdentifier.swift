@@ -20,6 +20,17 @@ enum ShortcutIdentifier: String, CaseIterable, Codable, Hashable {
         !eventTapHandledCases.contains($0)
     }
 
+    var supportsPlainKey: Bool {
+        switch self {
+        case .scrollLeft, .scrollDown, .scrollUp, .scrollRight: return true
+        default: return false
+        }
+    }
+
+    func requiresCursorMode(for shortcut: KeyboardShortcut) -> Bool {
+        supportsPlainKey && shortcut.modifiers.intersection([.command, .control, .option]).isEmpty
+    }
+
     var hotKeyID: UInt32 {
         switch self {
         case .activateCursorMode:

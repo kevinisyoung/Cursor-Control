@@ -4,6 +4,7 @@ enum CursorMovementBindingValidationError: LocalizedError, Equatable {
     case duplicate(CursorMovementDirection)
     case reservedKey
     case unavailable
+    case scrollConflict(ShortcutIdentifier)
 
     var errorDescription: String? {
         switch self {
@@ -13,6 +14,8 @@ enum CursorMovementBindingValidationError: LocalizedError, Equatable {
             return "Return and Escape are reserved while cursor control mode is active."
         case .unavailable:
             return "Cursor movement settings are not available."
+        case .scrollConflict(let identifier):
+            return "That key is already used for \(identifier.title.lowercased()) in cursor mode."
         }
     }
 }
@@ -116,10 +119,11 @@ final class CursorMovementBindingStore {
 
     func update(
         _ direction: CursorMovementDirection,
-        to shortcut: KeyboardShortcut
+        to shortcut: KeyboardShortcut,
+        shortcuts: [ShortcutIdentifier: KeyboardShortcut] = [:]
     ) -> Result<CursorMovementBindings, CursorMovementBindingValidationError> {
         var bindings = load()
-        let validation = validate(shortcut, for: direction, in: bindings)
+        let validation = validate(shortcut, for: direction, in: bindings, shortcuts: shortcuts)
 
         switch validation {
         case .success:
@@ -148,11 +152,20 @@ final class CursorMovementBindingStore {
     func validate(
         _ shortcut: KeyboardShortcut,
         for direction: CursorMovementDirection,
-        in bindings: CursorMovementBindings? = nil
+        in bindings: CursorMovementBindings? = nil,
+        shortcuts: [ShortcutIdentifier: KeyboardShortcut] = [:]
     ) -> Result<Void, CursorMovementBindingValidationError> {
         guard shortcut.keyCode != UInt32(KeyboardShortcuts.escapeKeyCode),
               !KeyboardShortcuts.returnKeyCodes.contains(UInt16(shortcut.keyCode)) else {
             return .failure(.reservedKey)
+        }
+
+        for (identifier, scrollShortcut) in shortcuts
+        where identifier.requiresCursorMode(for: scrollShortcut) && scrollShortcut.keyCode == shortcut.keyCode {
+            if scrollShortcut.modifiers == shortcut.modifiers
+                || scrollShortcut.modifiers == shortcut.modifiers.union(AppConstants.cursorDragModifier) {
+                return .failure(.scrollConflict(identifier))
+            }
         }
 
         let activeBindings = bindings ?? load()

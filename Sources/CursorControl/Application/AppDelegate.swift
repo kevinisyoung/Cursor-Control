@@ -159,7 +159,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     return .failure(.unavailable)
                 }
 
-                let result = cursorMovementBindingStore.update(direction, to: shortcut)
+                let result = cursorMovementBindingStore.update(
+                    direction, to: shortcut, shortcuts: shortcutCoordinator?.currentShortcuts ?? [:]
+                )
                 if case .success(let bindings) = result {
                     shortcutCoordinator?.updateCursorMovementBindings(bindings)
                 }
@@ -235,6 +237,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         maybeShowOnboarding()
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        settingsWindowController?.show()
+        return true
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

@@ -397,7 +397,7 @@ final class SettingsWindowController: NSWindowController {
     private func makeShortcutsSection() -> NSView {
         let sectionLabel = sectionDescription(
             title: "Shortcuts",
-            body: "Record global shortcuts here. For cursor control mode, you can also tap Left or Right Option alone. Cursor movement keys are configured separately in Cursor Control."
+            body: "Record global shortcuts here. For cursor control mode, you can also tap Left or Right Option alone. Scroll shortcuts without Command, Control, or Option work only in cursor mode; modified shortcuts work globally. Cursor movement keys are configured separately in Cursor Control."
         )
 
         let shortcutStack = NSStackView()

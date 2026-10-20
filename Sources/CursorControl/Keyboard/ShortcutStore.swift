@@ -3,6 +3,8 @@ import Foundation
 enum ShortcutValidationError: LocalizedError, Equatable {
     case duplicate(ShortcutIdentifier)
     case missingPrimaryModifier
+    case reservedCursorKey
+    case movementConflict(CursorMovementDirection)
 
     var errorDescription: String? {
         switch self {
@@ -10,6 +12,10 @@ enum ShortcutValidationError: LocalizedError, Equatable {
             return "That shortcut is already used by \(existingIdentifier.title)."
         case .missingPrimaryModifier:
             return "Use Command, Control, or Option with the shortcut."
+        case .reservedCursorKey:
+            return "Return and Escape are reserved while cursor control mode is active."
+        case .movementConflict(let direction):
+            return "That key is already used for \(direction.settingsTitle.lowercased()) in cursor mode."
         }
     }
 }
@@ -75,10 +81,11 @@ final class ShortcutStore {
 
     func update(
         _ identifier: ShortcutIdentifier,
-        to shortcut: KeyboardShortcut
+        to shortcut: KeyboardShortcut,
+        movementBindings: CursorMovementBindings? = nil
     ) -> Result<ShortcutAssignments, ShortcutValidationError> {
         var assignments = load()
-        let validation = validate(shortcut, for: identifier, in: assignments)
+        let validation = validate(shortcut, for: identifier, in: assignments, movementBindings: movementBindings)
 
         switch validation {
         case .success:
@@ -103,11 +110,25 @@ final class ShortcutStore {
     func validate(
         _ shortcut: KeyboardShortcut,
         for identifier: ShortcutIdentifier,
-        in assignments: ShortcutAssignments? = nil
+        in assignments: ShortcutAssignments? = nil,
+        movementBindings: CursorMovementBindings? = nil
     ) -> Result<Void, ShortcutValidationError> {
         guard (identifier == .activateCursorMode && shortcut.isOptionTap)
+            || (identifier.supportsPlainKey && !shortcut.keyEquivalent.isEmpty)
             || !shortcut.modifiers.intersection([.command, .control, .option]).isEmpty else {
             return .failure(.missingPrimaryModifier)
+        }
+
+        if identifier.requiresCursorMode(for: shortcut) {
+            if shortcut.keyCode == UInt32(KeyboardShortcuts.escapeKeyCode)
+                || KeyboardShortcuts.returnKeyCodes.contains(UInt16(shortcut.keyCode)) {
+                return .failure(.reservedCursorKey)
+            }
+            if let movementBindings,
+               let direction = movementBindings.direction(for: shortcut.keyCode, modifiers: shortcut.modifiers)
+                ?? movementBindings.dragDirection(for: shortcut.keyCode, modifiers: shortcut.modifiers) {
+                return .failure(.movementConflict(direction))
+            }
         }
 
         let activeAssignments = assignments ?? load()
