@@ -77,13 +77,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         cursorControlService.onActiveStateChanged = {
-            [weak menuBarController, weak shortcutCoordinator, weak cursorModeIndicatorController] isActive in
+            [weak self, weak menuBarController, weak shortcutCoordinator, weak cursorModeIndicatorController] isActive in
             shortcutCoordinator?.setCursorModeActive(isActive)
             menuBarController?.setCursorModeActive(isActive)
+            self?.settingsWindowController?.setCursorModeActive(isActive)
             if isActive {
                 cursorModeIndicatorController?.show()
             } else {
                 cursorModeIndicatorController?.hide()
+                self?.autoClickerService?.stop()
+                self?.jigglerService?.stop()
             }
         }
         cursorControlService.onCaptureModeChanged = { [weak shortcutCoordinator] captureMode in
@@ -102,6 +105,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onRestoreAutoClickerSettingsDefaults: { [weak autoClickerSettingsStore] in
                 autoClickerSettingsStore?.restoreDefaults() ?? AutoClickerSettings()
+            },
+            onToggleCursorMode: { [weak cursorControlService] in
+                cursorControlService?.toggle()
+                return cursorControlService?.isActive ?? false
+            },
+            modeOptionsProvider: { [weak shortcutCoordinator] in
+                shortcutCoordinator?.modeOptions ?? CursorModeOptions()
+            },
+            onModeOptionsChange: { [weak shortcutCoordinator] options in
+                shortcutCoordinator?.updateModeOptions(options)
             },
             shortcutProvider: { [weak shortcutCoordinator] identifier in
                 shortcutCoordinator?.shortcut(for: identifier)
@@ -188,7 +201,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             handlers: [
                 .activateCursorMode: { [weak self] type, _ in
                     guard type == .keyDown else { return }
-                    self?.cursorControlService?.toggle()
+                    if self?.shortcutCoordinator?.modeOptions.separateExitEnabled == true {
+                        self?.cursorControlService?.start()
+                    } else {
+                        self?.cursorControlService?.toggle()
+                    }
+                },
+                .exitCursorMode: { [weak self] type, _ in
+                    guard type == .keyDown else { return }
+                    self?.cursorControlService?.stop()
                 },
                 .scrollLeft: { [weak self] type, repeatCount in
                     guard type == .keyDown else { return }
@@ -213,14 +234,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         self?.autoClickerService?.stop()
                     }
                 },
-                .middleClick: { [weak self] type, _ in
-                    guard type == .keyDown else { return }
+                .middleClick: { [weak self] type, repeatCount in
+                    guard type == .keyDown, repeatCount == 0 else { return }
                     if let location = CGEvent(source: nil)?.location {
                         _ = self?.mouseClickService?.click(.middle, at: location)
                     }
                 },
-                .mouseJiggler: { [weak self] type, _ in
-                    guard type == .keyDown else { return }
+                .mouseJiggler: { [weak self] type, repeatCount in
+                    guard type == .keyDown, repeatCount == 0 else { return }
                     self?.jigglerService?.toggle()
                 }
             ],
@@ -237,6 +258,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         maybeShowOnboarding()
+        settingsWindowController.show()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {

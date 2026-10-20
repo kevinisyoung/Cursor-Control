@@ -116,7 +116,8 @@ final class ShortcutRecorderButton: NSButton {
             return
         }
         guard event.type == .keyDown else { return }
-        if event.keyCode == KeyboardShortcuts.escapeKeyCode {
+        if event.keyCode == KeyboardShortcuts.escapeKeyCode,
+           recorderTarget != .globalShortcut(.exitCursorMode) {
             cancelRecording()
             return
         }

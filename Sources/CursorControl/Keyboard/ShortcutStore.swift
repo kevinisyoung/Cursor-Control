@@ -120,7 +120,7 @@ final class ShortcutStore {
         }
 
         if identifier.requiresCursorMode(for: shortcut) {
-            if shortcut.keyCode == UInt32(KeyboardShortcuts.escapeKeyCode)
+            if (identifier != .exitCursorMode && shortcut.keyCode == UInt32(KeyboardShortcuts.escapeKeyCode))
                 || KeyboardShortcuts.returnKeyCodes.contains(UInt16(shortcut.keyCode)) {
                 return .failure(.reservedCursorKey)
             }

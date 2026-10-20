@@ -1,5 +1,6 @@
 enum ShortcutIdentifier: String, CaseIterable, Codable, Hashable {
     case activateCursorMode
+    case exitCursorMode
     case scrollLeft
     case scrollDown
     case scrollUp
@@ -8,31 +9,15 @@ enum ShortcutIdentifier: String, CaseIterable, Codable, Hashable {
     case middleClick
     case mouseJiggler
 
-    static let eventTapHandledCases: [ShortcutIdentifier] = [
-        .scrollLeft,
-        .scrollDown,
-        .scrollUp,
-        .scrollRight,
-        .autoClicker
-    ]
+    static let eventTapHandledCases = allCases.filter { $0 != .activateCursorMode }
+    static let carbonHandledCases: [ShortcutIdentifier] = [.activateCursorMode]
 
-    static let carbonHandledCases: [ShortcutIdentifier] = allCases.filter {
-        !eventTapHandledCases.contains($0)
-    }
-
-    var supportsPlainKey: Bool {
-        switch self {
-        case .scrollLeft, .scrollDown, .scrollUp, .scrollRight: return true
-        default: return false
-        }
-    }
-
-    func requiresCursorMode(for shortcut: KeyboardShortcut) -> Bool {
-        supportsPlainKey && shortcut.modifiers.intersection([.command, .control, .option]).isEmpty
-    }
+    var supportsPlainKey: Bool { self != .activateCursorMode }
+    func requiresCursorMode(for shortcut: KeyboardShortcut) -> Bool { self != .activateCursorMode }
 
     var hotKeyID: UInt32 {
         switch self {
+        case .exitCursorMode: return 9
         case .activateCursorMode:
             return 1
         case .scrollLeft:
@@ -54,6 +39,7 @@ enum ShortcutIdentifier: String, CaseIterable, Codable, Hashable {
 
     var title: String {
         switch self {
+        case .exitCursorMode: return "Exit cursor mode"
         case .activateCursorMode:
             return "Cursor control mode"
         case .scrollLeft:
@@ -73,8 +59,9 @@ enum ShortcutIdentifier: String, CaseIterable, Codable, Hashable {
 
     var settingsDescription: String {
         switch self {
+        case .exitCursorMode: return "Return to normal typing without entering cursor mode."
         case .activateCursorMode:
-            return "Enter or exit keyboard cursor-control mode."
+            return "Enter cursor mode; toggle it off unless a separate exit key is enabled."
         case .scrollLeft:
             return "Scroll the frontmost app left."
         case .scrollDown:

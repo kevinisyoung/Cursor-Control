@@ -173,6 +173,13 @@ final class SettingsWindowController: NSWindowController {
     private let autoClickerSettingsProvider: () -> AutoClickerSettings
     private let onAutoClickerSettingsChange: (AutoClickerSettings) -> Void
     private let onRestoreAutoClickerSettingsDefaults: () -> AutoClickerSettings
+    private let modeOptionsProvider: () -> CursorModeOptions
+    private let onModeOptionsChange: (CursorModeOptions) -> Void
+    private var separateExitCheckbox: NSButton?
+    private let onToggleCursorMode: () -> Bool
+    private var entryModeButton: NSButton?
+    private var entryStatusLabel: NSTextField?
+    private var exitShortcutRow: NSView?
     private let shortcutProvider: (ShortcutIdentifier) -> KeyboardShortcut
     private let scrollSettingsProvider: () -> ScrollSettings
     private let cursorSettingsProvider: () -> CursorSettings
@@ -203,6 +210,9 @@ final class SettingsWindowController: NSWindowController {
         autoClickerSettingsProvider: @escaping () -> AutoClickerSettings,
         onAutoClickerSettingsChange: @escaping (AutoClickerSettings) -> Void,
         onRestoreAutoClickerSettingsDefaults: @escaping () -> AutoClickerSettings,
+        onToggleCursorMode: @escaping () -> Bool,
+        modeOptionsProvider: @escaping () -> CursorModeOptions,
+        onModeOptionsChange: @escaping (CursorModeOptions) -> Void,
         shortcutProvider: @escaping (ShortcutIdentifier) -> KeyboardShortcut,
         scrollSettingsProvider: @escaping () -> ScrollSettings,
         cursorSettingsProvider: @escaping () -> CursorSettings,
@@ -223,6 +233,9 @@ final class SettingsWindowController: NSWindowController {
         self.autoClickerSettingsProvider = autoClickerSettingsProvider
         self.onAutoClickerSettingsChange = onAutoClickerSettingsChange
         self.onRestoreAutoClickerSettingsDefaults = onRestoreAutoClickerSettingsDefaults
+        self.onToggleCursorMode = onToggleCursorMode
+        self.modeOptionsProvider = modeOptionsProvider
+        self.onModeOptionsChange = onModeOptionsChange
         self.shortcutProvider = shortcutProvider
         self.scrollSettingsProvider = scrollSettingsProvider
         self.cursorSettingsProvider = cursorSettingsProvider
@@ -238,7 +251,7 @@ final class SettingsWindowController: NSWindowController {
         self.onRecordingStateChanged = onRecordingStateChanged
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 780, height: 800),
+            contentRect: NSRect(x: 0, y: 0, width: 800, height: 940),
             styleMask: [.titled, .closable, .resizable, .miniaturizable],
             backing: .buffered,
             defer: false
@@ -256,6 +269,7 @@ final class SettingsWindowController: NSWindowController {
     func show() {
         guard let window else { return }
 
+        refreshModeOptions()
         refreshShortcutButtons()
         refreshScrollSettingsControls()
         refreshCursorSettingsControls()
@@ -288,7 +302,7 @@ final class SettingsWindowController: NSWindowController {
         titleLabel.font = .systemFont(ofSize: 24, weight: .bold)
 
         let detailLabel = NSTextField(
-            wrappingLabelWithString: "Tune shortcuts, scrolling, and cursor-control behavior. Cursor Control is focused on keyboard cursor movement and universal scrolling."
+            wrappingLabelWithString: "Enter cursor mode to use your keyboard as a mouse. Exit to type normally."
         )
         detailLabel.font = .systemFont(ofSize: NSFont.systemFontSize)
         detailLabel.textColor = .secondaryLabelColor
@@ -299,6 +313,7 @@ final class SettingsWindowController: NSWindowController {
         messageLabel.maximumNumberOfLines = 0
 
         configureTabView()
+        let entrySection = makeEntrySection()
 
         let restoreButton = NSButton(
             title: "Restore All Defaults",
@@ -311,6 +326,7 @@ final class SettingsWindowController: NSWindowController {
             views: [
                 titleLabel,
                 detailLabel,
+                entrySection,
                 tabView,
                 messageLabel,
                 restoreButton
@@ -318,15 +334,16 @@ final class SettingsWindowController: NSWindowController {
         )
         stack.orientation = .vertical
         stack.alignment = .leading
-        stack.spacing = 32
-        stack.edgeInsets = NSEdgeInsets(top: 10, left: 0, bottom: 20, right: 0)
+        stack.spacing = 18
+        stack.edgeInsets = NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
         stack.translatesAutoresizingMaskIntoConstraints = false
 
         container.addSubview(stack)
         tabView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
+            entrySection.widthAnchor.constraint(equalTo: stack.widthAnchor),
             tabView.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            tabView.heightAnchor.constraint(greaterThanOrEqualToConstant: 500),
+            tabView.heightAnchor.constraint(greaterThanOrEqualToConstant: 300),
 
             stack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 32),
             stack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -32),
@@ -334,6 +351,7 @@ final class SettingsWindowController: NSWindowController {
             stack.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -24)
         ])
 
+        refreshModeOptions()
         refreshShortcutButtons()
         refreshScrollSettingsControls()
         refreshCursorSettingsControls()
@@ -394,10 +412,89 @@ final class SettingsWindowController: NSWindowController {
         return container
     }
 
+    func setCursorModeActive(_ active: Bool) {
+        entryModeButton?.state = active ? .on : .off
+        entryModeButton?.title = active ? "Entry is on — Exit mode" : "Entry is off — Enter mode"
+        entryStatusLabel?.stringValue = active ? "Keyboard mouse controls are active." : "Normal typing. Mouse shortcuts are inactive."
+        entryStatusLabel?.textColor = active ? .controlAccentColor : .secondaryLabelColor
+    }
+
+    @objc private func toggleEntryMode(_ sender: NSButton) {
+        setCursorModeActive(onToggleCursorMode())
+    }
+
+    private func makeEntrySection() -> NSView {
+        let title = NSTextField(labelWithString: "Entry")
+        title.font = .systemFont(ofSize: 22, weight: .semibold)
+        let status = NSTextField(labelWithString: "Normal typing. Mouse shortcuts are inactive.")
+        status.font = .systemFont(ofSize: 12)
+        status.textColor = .secondaryLabelColor
+        entryStatusLabel = status
+        let labels = NSStackView(views: [title, status])
+        labels.orientation = .vertical
+        labels.alignment = .leading
+        labels.spacing = 5
+
+        let toggle = NSButton(title: "Entry is off — Enter mode", target: self, action: #selector(toggleEntryMode(_:)))
+        toggle.setButtonType(.pushOnPushOff)
+        toggle.bezelStyle = .rounded
+        toggle.controlSize = .large
+        toggle.font = .systemFont(ofSize: 17, weight: .semibold)
+        toggle.heightAnchor.constraint(greaterThanOrEqualToConstant: 54).isActive = true
+        toggle.widthAnchor.constraint(greaterThanOrEqualToConstant: 260).isActive = true
+        entryModeButton = toggle
+        let header = NSStackView(views: [labels, NSView(), toggle])
+        header.orientation = .horizontal
+        header.alignment = .centerY
+        header.spacing = 16
+
+        let shortcut = makeShortcutRow(for: .activateCursorMode)
+        shortcutButtons[.activateCursorMode]?.font = .systemFont(ofSize: 18, weight: .medium)
+        shortcutButtons[.activateCursorMode]?.heightAnchor.constraint(greaterThanOrEqualToConstant: 42).isActive = true
+        let separateExit = NSButton(checkboxWithTitle: "Use a different key to exit", target: self, action: #selector(modeOptionsChanged(_:)))
+        separateExitCheckbox = separateExit
+        let exitRow = makeShortcutRow(for: .exitCursorMode)
+        exitShortcutRow = exitRow
+        let scope = NSTextField(wrappingLabelWithString: "All movement, scrolling, and action shortcuts below require Entry to be on. Settings always stay editable.")
+        scope.font = .systemFont(ofSize: 12)
+        scope.textColor = .secondaryLabelColor
+        let content = NSStackView(views: [header, shortcut, separateExit, exitRow, scope])
+        content.orientation = .vertical
+        content.alignment = .leading
+        content.spacing = 12
+        content.translatesAutoresizingMaskIntoConstraints = false
+        for row in [header, shortcut, exitRow] {
+            row.widthAnchor.constraint(equalTo: content.widthAnchor).isActive = true
+        }
+        content.edgeInsets = NSEdgeInsets(top: 18, left: 18, bottom: 18, right: 18)
+        content.wantsLayer = true
+        content.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+        content.layer?.borderColor = NSColor.separatorColor.cgColor
+        content.layer?.borderWidth = 1
+        content.layer?.cornerRadius = 12
+        refreshModeOptions()
+        return content
+    }
+
+    private func refreshModeOptions() {
+        let options = modeOptionsProvider()
+        separateExitCheckbox?.state = options.separateExitEnabled ? .on : .off
+        exitShortcutRow?.isHidden = !options.separateExitEnabled
+        shortcutButtons[.exitCursorMode]?.isEnabled = options.separateExitEnabled
+    }
+
+    @objc private func modeOptionsChanged(_ sender: NSButton) {
+        let options = CursorModeOptions(
+            separateExitEnabled: separateExitCheckbox?.state == .on
+        )
+        onModeOptionsChange(options)
+        refreshModeOptions()
+    }
+
     private func makeShortcutsSection() -> NSView {
         let sectionLabel = sectionDescription(
             title: "Shortcuts",
-            body: "Record global shortcuts here. For cursor control mode, you can also tap Left or Right Option alone. Scroll shortcuts without Command, Control, or Option work only in cursor mode; modified shortcuts work globally. Cursor movement keys are configured separately in Cursor Control."
+            body: "These shortcuts work only while Entry is on. Plain keys are supported. You can edit settings at any time."
         )
 
         let shortcutStack = NSStackView()
@@ -405,7 +502,7 @@ final class SettingsWindowController: NSWindowController {
         shortcutStack.alignment = .leading
         shortcutStack.spacing = 16
 
-        for identifier in ShortcutIdentifier.allCases {
+        for identifier in ShortcutIdentifier.allCases where identifier != .activateCursorMode && identifier != .exitCursorMode {
             shortcutStack.addArrangedSubview(makeShortcutRow(for: identifier))
         }
 
@@ -720,10 +817,10 @@ final class SettingsWindowController: NSWindowController {
     }
 
     private func makeShortcutRow(for identifier: ShortcutIdentifier) -> NSView {
-        let titleLabel = NSTextField(labelWithString: identifier.title)
+        let titleLabel = NSTextField(labelWithString: identifier == .activateCursorMode ? "Entry shortcut" : identifier.title)
         titleLabel.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
 
-        let descriptionLabel = NSTextField(wrappingLabelWithString: identifier.settingsDescription)
+        let descriptionLabel = NSTextField(wrappingLabelWithString: identifier == .activateCursorMode ? "Record a key combination or tap Left or Right Option." : identifier.settingsDescription)
         descriptionLabel.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         descriptionLabel.textColor = .secondaryLabelColor
         descriptionLabel.maximumNumberOfLines = 0
@@ -855,6 +952,7 @@ final class SettingsWindowController: NSWindowController {
         shortcut: KeyboardShortcut
     ) {
         let result = onShortcutChange(identifier, shortcut)
+        refreshModeOptions()
         refreshShortcutButtons()
         button.finishRecording(displayTitle: shortcutProvider(identifier).displayName)
         onRecordingStateChanged(false)
@@ -888,11 +986,13 @@ final class SettingsWindowController: NSWindowController {
     }
 
     @objc private func restoreDefaults() {
+        onModeOptionsChange(CursorModeOptions())
         let result = onRestoreDefaults()
         let scrollSettings = onRestoreScrollSettingsDefaults()
         let cursorSettings = onRestoreCursorSettingsDefaults()
         let autoClickerSettings = onRestoreAutoClickerSettingsDefaults()
         _ = onRestoreCursorMovementBindingsDefaults()
+        refreshModeOptions()
         refreshShortcutButtons()
         refreshScrollSettingsControls(with: scrollSettings)
         refreshCursorSettingsControls(with: cursorSettings)

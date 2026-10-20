@@ -21,8 +21,8 @@ the app.
 
 After it opens:
 
-Cursor Control runs in the menu bar. It does not show a Dock icon or main
-window. Use the menu bar icon to open the guide, settings, or quit the app.
+Cursor Control opens Settings and appears in the Dock and menu bar. Reopen
+it from Applications or your launcher to show Settings again. Use the menu bar icon to open the guide, settings, or quit the app.
 
 Homebrew install:
 

@@ -9,6 +9,7 @@ enum KeyboardShortcuts {
     static let moveRightKeyCode: UInt32 = 37
 
     static let defaultGlobalShortcuts: [ShortcutIdentifier: KeyboardShortcut] = [
+        .exitCursorMode: KeyboardShortcut(keyCode: 53, modifiers: [], keyEquivalent: "\u{1b}", displayKey: "Escape"),
         .activateCursorMode: KeyboardShortcut(
             keyCode: 13,
             modifiers: [.option],

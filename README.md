@@ -6,7 +6,7 @@
 
 Cursor Control is a native macOS menu bar app for moving the mouse cursor,
 clicking, dragging, and scrolling with the keyboard. It is built with AppKit,
-has no web runtime, and stays out of the Dock.
+has no web runtime, and is available from Applications, the Dock, and app launchers.
 
 ## Before You Install
 
@@ -75,7 +75,7 @@ stored in the cask.
 - **Middle-click**: Global shortcut to instantly middle-click at your current cursor position (great for opening links in new tabs)
 - **Mouse Jiggler (Keep Awake)**: Prevent your Mac from falling asleep during long tasks. Toggle it on and it will gently nudge your cursor every 30 seconds if you're completely inactive.
 - **Auto-Clicker**: Hold a shortcut to fire continuous clicks, and release to stop instantly
-- Configure global shortcuts, movement keys, scroll behavior, auto-click speed, and cursor speed
+- Configure the entry shortcut, action shortcuts, movement keys, scroll behavior, auto-click speed, and cursor speed
 - Run quietly from the menu bar with onboarding and a comprehensive settings window
 
 ## Requirements
@@ -88,8 +88,9 @@ Line Tools with a Swift 6 compatible toolchain.
 
 ## Usage
 
-Opening `Cursor Control.app` adds a cursor icon to the macOS menu bar. It does
-not open a main window or appear in the Dock.
+Opening `Cursor Control.app` opens Settings and adds an icon to the Dock and the
+macOS menu bar. Closing Settings leaves the app running; reopen it from the Dock,
+Applications, or your launcher to show Settings again. Choose Quit to stop it.
 
 The menu bar menu contains:
 
@@ -106,6 +107,17 @@ and release Left Option or Right Option. The sides are distinct. A tap must fini
 within 250 ms; holding Option or combining it with another key or mouse click does
 not toggle the mode. This requires Accessibility access. Existing shortcuts and the
 Option-W default are unchanged.
+
+Beneath the cursor-mode shortcut in Settings, enable **Use a separate key to exit
+cursor mode** to make the entry shortcut enter only. The exit key defaults to
+Escape and can be recorded independently, including as a plain key. It is ignored
+outside cursor mode. Disable the option to return to toggle behavior.
+
+The large **Entry** button in Settings shows and toggles cursor mode. All movement,
+scrolling, middle-click, auto-clicker, and keep-awake shortcuts work only while
+Entry is on. Settings remain editable when it is off. Exiting also stops the
+auto-clicker and keep-awake service. Every action shortcut supports plain keys;
+the entry shortcut requires a key combination or Left/Right Option tap.
 
 While cursor mode is active:
 
@@ -126,10 +138,10 @@ typing, then toggle it back on when you want keyboard mouse control again.
 Scroll shortcuts can also be plain keys (for example, arrow keys or `/`). Set them
 in Settings → Shortcuts. Bindings without Command, Control, or Option scroll only
 while cursor mode is active, and type normally otherwise. Modified scroll
-shortcuts keep their global behavior. Return, Escape, and movement keys cannot be
+shortcuts also require Entry to be on. Return, Escape, and movement keys cannot be
 assigned to mode-only scrolling.
 
-Scrolling works globally without opening another window. Press
+Scrolling works in the frontmost app while Entry is on. Press
 **Control-H/J/K/L** to scroll left, down, up, and right in the frontmost app.
 
 Settings lets you tune scroll distance, scroll events per repeat, hold

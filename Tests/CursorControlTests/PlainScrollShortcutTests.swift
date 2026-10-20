@@ -26,14 +26,18 @@ struct PlainScrollShortcutTests {
         #expect(GlobalInputEventTap.shortcutIdentifier(for: 126, modifiers: [.control], shortcuts: shortcuts, isCursorModeActive: true) == nil)
     }
 
-    @Test func modifiedScrollStaysGlobal() {
+    @Test func modifiedScrollAlsoRequiresCursorMode() {
         let shortcuts = KeyboardShortcuts.defaultGlobalShortcuts
-        #expect(GlobalInputEventTap.shortcutIdentifier(for: 4, modifiers: [.control], shortcuts: shortcuts) == .scrollLeft)
+        #expect(GlobalInputEventTap.shortcutIdentifier(for: 4, modifiers: [.control], shortcuts: shortcuts) == nil)
     }
 
-    @Test func plainKeysRemainUnavailableForOtherGlobalActions() {
-        for identifier in [ShortcutIdentifier.activateCursorMode, .autoClicker, .middleClick, .mouseJiggler] {
-            #expect(store().update(identifier, to: arrow) == .failure(.missingPrimaryModifier))
+    @Test func plainKeysAreAvailableForModeActionsButNotEntry() {
+        #expect(store().update(.activateCursorMode, to: arrow) == .failure(.missingPrimaryModifier))
+        for identifier in [ShortcutIdentifier.autoClicker, .middleClick, .mouseJiggler] {
+            guard case .success = store().update(identifier, to: arrow) else {
+                Issue.record("Mode-only actions should accept a plain key")
+                continue
+            }
         }
     }
 
